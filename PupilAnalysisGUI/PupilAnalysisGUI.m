@@ -118,7 +118,7 @@ function FileSelectButton_Callback(hObject, eventdata, handles)
 % hObject    handle to FileSelectButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-[f,p] = uigetfile({'*.avi';'*.mp4'},'Select video:');
+[f,p] = uigetfile({'*.mp4';'*.avi'},'Select video:');
 % Cancel if we selected nothing
 if isequal(f,0)
     return
