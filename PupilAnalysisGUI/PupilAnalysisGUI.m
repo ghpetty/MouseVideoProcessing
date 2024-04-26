@@ -22,7 +22,7 @@ function varargout = PupilAnalysisGUI(varargin)
 
 % Edit the above text to modify the response to help PupilAnalysisGUI
 
-% Last Modified by GUIDE v2.5 25-Apr-2024 16:28:28
+% Last Modified by GUIDE v2.5 26-Apr-2024 11:15:07
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -58,8 +58,6 @@ handles.output = hObject;
 % Turn off tick marks on axes
 set([handles.Axes_Original,handles.Axes_Processed,handles.Axes_Mask],...
     'XTick',[],'YTick',[]);
-ylabel(handles.Axes_Area,'Pupil Size')
-ylabel(handles.Axes_IR,'Alignment Signal')
 % Disable all UI elements except the load-video button
 allgraphics = findall(groot,'Type','UIControl');
 set(allgraphics,'Enable','off');
@@ -304,20 +302,16 @@ while doPlay && hasFrame(handles.VR)
     handles.IRSignal(handles.currFrame) = IRSignal;
     handles.semimajorAxis(handles.currFrame) = semimajorAxis;
     
-    % plot(handles.Axes_Area,...
-    %     [handles.pupilRadiusVect ; ...
-    %      handles.semimajorAxis]');
     plot(handles.Axes_Area, handles.pupilRadiusVect);
-    % plot(handles.Axes_Area,handles.semimajorAxis);
     xlim(handles.Axes_Area,...
         [handles.currFrame , handles.currFrame] + ...
             (handles.plotRange)*handles.VR.FrameRate);
-    % legend(handles.Axes_Area,{'Radius','Semimajor Axis'},...
-    %     'Location','northwest');
     plot(handles.Axes_IR,handles.IRSignal,'Color','r')
     xlim(handles.Axes_IR,...
         [handles.currFrame , handles.currFrame] + ...
             (handles.plotRange)*handles.VR.FrameRate);
+
+    set([handles.Axes_Area,handles.Axes_IR],'YAxisLocation','right');
     drawnow;
     
     doPlay = get(hObject,'Value');
@@ -482,3 +476,13 @@ function Axes_Original_CreateFcn(hObject, eventdata, handles)
 % handles    empty - handles not created until after all CreateFcns called
 
 % Hint: place code in OpeningFcn to populate Axes_Original
+
+
+% --- Executes during object creation, after setting all properties.
+function Axes_Area_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to Axes_Area (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+set(hObject,'XTick',[],'XTickLabelMode','manual')
+guidata(hObject,handles)
+% Hint: place code in OpeningFcn to populate Axes_Area
