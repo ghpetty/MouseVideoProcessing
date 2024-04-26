@@ -163,6 +163,13 @@ function ThreshSlider_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+
+currVal = get(hObject,'Value');
+stepSize = get(hObject,'SliderStep');
+stepSize = stepSize(1);
+stepSize = (hObject.Max - hObject.Min) * stepSize;
+roundVal = round(currVal / stepSize) * stepSize;
+set(hObject,'Value',roundVal);
 processPupilFrame_gui(handles);
 set(handles.ThreshText,'String',get(hObject,'Value'));
 
@@ -187,6 +194,13 @@ function CloseSlider_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+currVal = get(hObject,'Value');
+stepSize = get(hObject,'SliderStep');
+stepSize = stepSize(1);
+stepSize = (hObject.Max - hObject.Min) * stepSize;
+roundVal = round(currVal / stepSize) * stepSize;
+set(hObject,'Value',roundVal);
+processPupilFrame_gui(handles);
 processPupilFrame_gui(handles);
 set(handles.CloseText,'String',get(hObject,'Value'));
 
@@ -209,9 +223,12 @@ function OpenSlider_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % This has to be an integer, so we round it first
-V = get(hObject,'Value');
-V = round(V);
-set(hObject,'Value',V);
+currVal = get(hObject,'Value');
+stepSize = get(hObject,'SliderStep');
+stepSize = stepSize(1);
+stepSize = (hObject.Max - hObject.Min) * stepSize;
+roundVal = round(currVal / stepSize) * stepSize;
+set(hObject,'Value',roundVal);
 processPupilFrame_gui(handles);
 set(handles.OpenText,'String',get(hObject,'Value'));
 
@@ -235,6 +252,12 @@ function MinCutoffSlider_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+currVal = get(hObject,'Value');
+stepSize = get(hObject,'SliderStep');
+stepSize = stepSize(1);
+stepSize = (hObject.Max - hObject.Min) * stepSize;
+roundVal = round(currVal / stepSize) * stepSize;
+set(hObject,'Value',roundVal);
 processPupilFrame_gui(handles);
 set(handles.MinCutoffText,'String',get(hObject,'Value'));
 
