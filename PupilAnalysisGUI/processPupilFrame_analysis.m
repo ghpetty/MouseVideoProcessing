@@ -74,6 +74,7 @@ end
 
 % Binarize image using specified threshold parameter
 im_bin = imbinarize(im_fill,p.Results.Threshold);
+im_bin = ~im_bin;
 % Open and close to smooth out the thresholded regions
 if p.Results.Close > 0
     im_bin = imclose(im_bin,strel('square',p.Results.Close));
@@ -81,7 +82,7 @@ end
 if p.Results.Open > 0
     im_bin = imopen(im_bin,strel('square',p.Results.Open));
 end
-im_bin = ~im_bin;
+
 % Find objects that might be the pupil. Then remove objects that are too
 % small
 RP = regionprops(im_bin,'Centroid','MajorAxisLength','MinorAxisLength',...

@@ -57,6 +57,7 @@ end
 imshow(im_fill,'Parent',handles.Axes_Mask);
 % Threshold to create a binary image
 im_bin = imbinarize(im_fill,handles.ThreshSlider.Value);
+im_bin = ~im_bin;
 % T = adaptthresh(im_fill,handles.ThreshSlider.Value,'NeighborhoodSize',31);
 % im_bin = imbinarize(im_fill,T);
 % Open and close to smooth out the thresholded regions
@@ -66,7 +67,7 @@ end
 if handles.OpenSlider.Value > 0
     im_bin = imopen(im_bin,strel('square',handles.OpenSlider.Value));
 end
-im_bin = ~im_bin;
+
 % Measure properties of the binarized image
 RP = regionprops(im_bin,'Centroid','MajorAxisLength','MinorAxisLength',...
     'Orientation','Circularity');
