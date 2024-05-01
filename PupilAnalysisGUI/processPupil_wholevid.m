@@ -1,6 +1,6 @@
-function processPupil_wholevid(params,nFrames,dosave,doplot,useProgressBar)
+function dataOut = processPupil_wholevid(params,nFrames,dosave,doplot,useProgressBar)
 % PROCESSPUPIL_WHOLEVID analyze the pupil of a video using the parameters
-% in PupilAnalysis_gui_V2.
+% in PupilAnalysisGUI
 % Input is a struct containing a video reader object, ROIs, and image
 % manipulation parameters. Performs some smoothing and removes outliers of
 % the data, and saves the results to a Mat file in the same directory as
@@ -9,7 +9,7 @@ function processPupil_wholevid(params,nFrames,dosave,doplot,useProgressBar)
 % GHP April 2024
 
 
-if isequal(nFrames,'all')
+if isequal(nFrames,'all') || (nargin < 2)
     nFrames = floor(params.VR.Duration * params.VR.FrameRate);
     params.VR.CurrentTime = 0;
 end
