@@ -1,4 +1,4 @@
-function outlierBool = processPupil_findOutliers(centroid,radius,outlierWindow)
+function outlierBool = processPupil_findOutliers(centroid,radius,outlierWindow,thresholdFactor)
 % outlierBool = processPupil_rmvOutliers(centroids,radii,outlierWindow)
 %
 % Identify outliers frames in a pupil video by finding frames where the
@@ -23,7 +23,7 @@ function outlierBool = processPupil_findOutliers(centroid,radius,outlierWindow)
 %
 % GHP April 2024
 
-% Combine data into a single 
+% Combine data into a single matrix
 outlier_test_mat = [centroid',radius'];
 outlierBoolMat = isoutlier(outlier_test_mat,'movmedian',outlierWindow,...
     'ThresholdFactor',4);

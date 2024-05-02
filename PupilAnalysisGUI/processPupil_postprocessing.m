@@ -8,7 +8,8 @@ function dataOut = processPupil_postprocessing(dataIn,postprocessParams)
 % - Return a struct with output variables
 
 % Find outliers:
-outlierBool = processPupil_findOutliers(dataIn.centroid,dataIn.radius,postprocessParams.outlierWindow);
+outlierBool = processPupil_findOutliers(dataIn.centroid,dataIn.radius,...
+    postprocessParams.outlierWindow,postprocessParams.thresholdFactor);
 
 dataOut = dataIn;
 % Remove outliers from video parameters, interpolate, and smooth.

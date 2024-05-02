@@ -68,6 +68,7 @@ end
 % - Parameters for post-processing:
 postprocessParams = struct;
 postprocessParams.outlierWindow = max(round(params.VR.FrameRate),60);
+postprocessParams.thresholdFactor = 4;
 postprocessParams.smoothWindow = 5;
 % - Data for post-processing:
 dataStruct = struct;
