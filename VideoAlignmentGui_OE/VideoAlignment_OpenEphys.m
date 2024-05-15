@@ -58,6 +58,15 @@ handles.output = hObject;
 % Prepare axis for plotting multiple lines:
 hold(handles.DiffSignalAxes,'on');
 
+% Set placeholders for video signal processing:
+handles.vidSignalParameters = struct('isInverted',false, ...
+                              'rmvBaseline',false, ...
+                              'threshold',nan, ...
+                              'minDur',nan, ...
+                              'maxDur',nan, ...
+                              'maxGap',nan,...
+                              'framerate',nan);
+
 % Update handles structure
 guidata(hObject, handles);
 
@@ -216,7 +225,7 @@ startTrim = str2double(get(handles.EphysTrimStartEdit,'String'));
 endTrim   = str2double(get(handles.EphysTrimEndEdit,'String'));
 S.EphysTrimInds = [startTrim,endTrim];
 
-S.VideoSR = handles.frameRate;
+S.VideoSR = handles.vidSignalParameters.framerate;
 S.VideoStartInds = handles.videoStartInds;
 startTrim = str2double(get(handles.VideoTrimStartEdit,'String'));
 endTrim   = str2double(get(handles.VideoTrimEndEdit,'String'));
@@ -442,7 +451,9 @@ alignmentSignalName = behaviorSignalContents{...
     get(handles.VideoDataDropdown,'Value')};
 
 
-VideoAlignment_ThreshSubGUI(handles.VideoData.(alignmentSignalName),handles);
+VideoAlignment_ThreshSubGUI(handles.VideoData.(alignmentSignalName), ...
+                            handles.vidSignalParameters,...
+                            handles);
 guidata(hObject,handles);
 
 
@@ -473,16 +484,24 @@ switch dataType
         % Get the signal from the behavior data table. 
         % - Identify which signal to plot from the corresponding dropdown
         % box:
-        signalType = handles.EphysSignalDropdown.String{...
+        signalVar = handles.EphysSignalDropdown.String{...
                         handles.EphysSignalDropdown.Value};
-        % Index start times from the behavior table:
+        % Index trial times
         startInds = cell2mat(handles.BehaviorDataTable{...
-                        signalType,'StartInds'});
+                        signalVar,'StartInds'});
+        endInds = cell2mat(handles.BehaviorDataTable{...
+                        signalVar,'EndInds'});
+
         % Convert to seconds, then dake the differential of the signal
         SR = str2double(handles.SamplerateDropdown.String{...
                         handles.SamplerateDropdown.Value});
-        startTimes = startInds / SR;
-        startDiff = diff(startTimes);
+        if handles.SignalOffsetCheck.Value == true;
+            trialTimes = endInds;
+        else
+            trialTimes = startInds;
+        end
+        trialTimes = trialTimes/SR;
+        startDiff = diff(trialTimes);
         % Get the trim values, then set the X values based on this
         % trimming.
         startTrim = str2double(get(handles.EphysTrimStartEdit,'String'));
@@ -505,17 +524,21 @@ switch dataType
     % signal is not processed before this stage of the data processing
     % pipeline. 
     case 'video'
-        if ~isfield(handles,'videoStartInds') || ...
-                ~isfield(handles,'frameRate')
+        if ~isfield(handles,'videoStartInds')
             error('Attempted to plot video data without preprocessing first');
         end
         
         % Convert to seconds, then dake the differential of the signal
-        SR = handles.frameRate;
-        startTimes = handles.videoStartInds / SR;
-        startDiff = diff(startTimes);
+        SR = handles.vidSignalParameters.framerate;
+        if handles.SignalOffsetCheck.Value == true
+            trialTimes = handles.videoEndInds;
+        else
+            trialTimes = handles.videoStartInds;
+        end
+        trialTimes = trialTimes / SR;
+        startDiff = diff(trialTimes);
         
-                % Get the trim values, then set the X values based on this
+        % Get the trim values, then set the X values based on this
         % trimming.
         startTrim = str2double(get(handles.VideoTrimStartEdit,'String'));
         endTrim   = str2double(get(handles.VideoTrimEndEdit,'String'));
@@ -588,5 +611,11 @@ function SignalOffsetCheck_Callback(hObject, eventdata, handles)
 % hObject    handle to SignalOffsetCheck (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+if isfield(handles,'videoStartInds')
+    handles = updatePlot(handles,'video');
+end
+if isfield(handles,'BehaviorDataTable')
+    handles = updatePlot(handles,'ephys');
+end
+guidata(hObject,handles);
 % Hint: get(hObject,'Value') returns toggle state of SignalOffsetCheck

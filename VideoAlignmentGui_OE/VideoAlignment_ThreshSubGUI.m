@@ -45,7 +45,9 @@ end
 
 
 % --- When called, the first input in "varargin" will be the alignment
-% signal. The second will be the entire handles array from the main GUI. 
+% signal. The second will be the default analysis parameters, or the
+% parameters previously used. The third is the entire handles array 
+% from the main GUI. 
 % When closing this GUI, we send information back to the main GUI by
 % copying values into that handles array and saving it to the main GUI with
 % guidata().
@@ -62,34 +64,81 @@ handles.output = hObject;
 % Save the alignment signal passed by the main GUI
 handles.data = varargin{1};
 
+% Load previously-used alignment parameters (or defaults)
+handles.vidSignalParameters = varargin{2};
 % Save the main GUI handles, which we use later
-handles.mainGUIHandles = varargin{2};
+handles.mainGUIHandles = varargin{3};
+
+
+
 % Sometimes there are NaN values in video data, so fill them in:
 handles.data = fillmissing(handles.data,'linear');
 
-% Create a time vector to plot using the default framerate. This will
-% change later if we change the frame rate:
-FRVals = get(handles.FramerateDropdown,'String');
-handles.frameRate = str2double(FRVals{get(handles.FramerateDropdown,'Value')});
-handles.timeVect = (1:length(handles.data)) / handles.frameRate;
+% If the data is meant to be inverted, do that here and set the invert
+% checkbox value to reflect that
+if handles.vidSignalParameters.isInverted == true
+    handles.data = -handles.data;
+    handles.InvertCheckbox.Value = 1;
+end
+% Get the framerate from either the default values (stored by this GUI) or
+% from previously used parameters
+
+if ~isnan(handles.vidSignalParameters.framerate)
+    dropdownInd = find(ismember(handles.FramerateDropdown.String,...
+                                string(handles.vidSignalParameters.framerate)));
+    if isempty(dropdownInd)
+        % This shouldn't ever happen, here for debugging purposes
+        error('Mismatched framerate request between main GUI and sub-GUI')
+    end
+    handles.FramerateDropdown.Value = dropdownInd;
+else
+    dropdownInd = handles.FramerateDropdown.Value;
+end
+handles.framerate = str2double(handles.FramerateDropdown.String{dropdownInd});
+% Create a time vector to plot using the framerate:
+handles.timeVect = (1:length(handles.data)) / handles.framerate;
 % Set the initial plotting range from 0 to 10 seconds. 
-handles.plotRange = [1,50*handles.frameRate];
-% First call of the plotting function to instantiate the plot of the
-% signal:
+handles.plotRange = [1,50*handles.framerate];
+
+% Set minimum duration, maximum duration, and maximum gap to those values
+% sent from the main GUI
+if ~isnan(handles.vidSignalParameters.minDur)
+    handles.MinDurEdit.String = string(...
+        round(handles.vidSignalParameters.minDur*1000 / handles.framerate));
+end
+if ~isnan(handles.vidSignalParameters.maxDur)
+    handles.MaxDurEdit.String = string(...
+        round(handles.vidSignalParameters.maxDur*1000 / handles.framerate));
+end
+if ~isnan(handles.vidSignalParameters.maxGap)
+    handles.MaxGapEdit.String = string(...
+        round(handles.vidSignalParameters.maxGap*1000/handles.framerate));
+end
+
+
+
+
+%  --------- DISABLED -----------
 % Filter the data if we want to see what it looks like with the baseline
 % removed.
-handles.data_filt = highpass(handles.data,0.1,handles.frameRate);
+% handles.data_filt = highpass(handles.data,0.1,handles.framerate);
+handles.data_filt = nan(size(handles.timeVect));
 
-% figure; sp1 = subplot(1,2,1); plot(handles.data);
-% sp2 = subplot(1,2,2); plot(handles.data_filt)
-% linkaxes([sp1 sp2],'x')
+
+% First call of the plotting function to instantiate the plot of the
+% signal:
 
 handles = updatePlot(handles);
 
 % Instantiate the line ROI object and draw it.
 % Set the initial threshold value as the mean value of the signal
-th = nanmean(handles.data);
-defaultPosition = [0,th ; handles.timeVect(end),th];
+% If the threshold was sent from the main GUI, use that instead:
+if isnan(handles.vidSignalParameters.threshold)
+    thresh_default = mean(handles.data,"all","omitmissing");
+else
+    thresh_default = handles.vidSignalParameters.threshold;
+end
+defaultPosition = [0,thresh_default ; handles.timeVect(end),thresh_default];
 handles.signalROI = images.roi.Line(handles.DataAxes,...
     'Deletable',false,'InteractionsAllowed','translate',...
     'Position',defaultPosition);
@@ -131,30 +180,36 @@ varargout{1} = handles.output;
 function AcceptButton_Callback(hObject, eventdata, handles)
 % Assign necessary parameters to the main GUI handle structure:
 thresh = handles.signalROI.Position(1,2);
-% handles.mainGUIHandles.videoThresh = handles.signalROI.Position(1,2);
-% handles.mainGUIHandles.videoMinDur = round(...
-%     str2double(get(handles.MinDurEdit,'String')) * handles.frameRate / 1000);
-% handles.mainGUIHandles.videoMaxDur = round(...
-%     str2double(get(handles.MaxDurEdit,'String')) * handles.frameRate / 1000);
-% handles.mainGUIHandles.videoInvert = get(handles.InvertCheckbox,'Value');
-% handles.mainGUIHandles.videoFramerate = handles.frameRate;
-% % Identify the main GUI object, then pass this information to it:
 
 % guidata(mainGUI,handles.mainGUIHandles);
 % Tell that GUI to update:
 % Process the entire signal to get all start times:
-SR = handles.frameRate;
-mindur = round(str2double(handles.MinDurEdit.String) * SR / 1000);
-maxdur = round(str2double(handles.MaxDurEdit.String) * SR / 1000);
+SR = handles.framerate;
+minDur = round(str2double(handles.MinDurEdit.String) * SR / 1000);
+maxDur = round(str2double(handles.MaxDurEdit.String) * SR / 1000);
+maxGap = round(str2double(handles.MaxGapEdit.String) * SR / 1000);
+
+
 if handles.RmBaselineCheck.Value
-    eventStarts = continuous2Event(handles.data_filt,...
-        thresh,'minDur',mindur,'maxDur',maxdur);
+    [eventStarts,eventEnds] = continuous2Event(handles.data_filt,...
+        thresh,'minDur',minDur,'maxDur',maxDur,'maxGap',maxGap);
 else
-    eventStarts = continuous2Event(handles.data,...
-        thresh,'minDur',mindur,'maxDur',maxdur);
+    [eventStarts,eventEnds] = continuous2Event(handles.data,...
+        thresh,'minDur',minDur,'maxDur',maxDur,'maxGap',maxGap);
 end
 handles.mainGUIHandles.videoStartInds = eventStarts;
-handles.mainGUIHandles.frameRate = SR;
+handles.mainGUIHandles.videoEndInds = eventEnds;
+handles.mainGUIHandles.framerate = SR;
+% Store the analysis parameters used so we can restore this figure if we
+% want to edit those parameters later:
+vidSignalParameters = struct('isInverted',handles.InvertCheckbox.Value, ...
+                              'rmvBaseline',handles.RmBaselineCheck.Value, ...
+                              'threshold',thresh, ...
+                              'minDur',minDur, ...
+                              'maxDur',maxDur, ...
+                              'maxGap',maxGap, ...
+                              'framerate',SR);
+handles.mainGUIHandles.vidSignalParameters = vidSignalParameters;
 % Call the "update plot" function on the main GUI, then pass the data back
 % to the main GUI.
 mainGUIHandles = VideoAlignment_OpenEphys(...
@@ -178,10 +233,10 @@ function BackButton_Callback(hObject, eventdata, handles)
 % hObject    handle to BackButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles.plotRange = handles.plotRange - handles.frameRate * 30;
+handles.plotRange = handles.plotRange - handles.framerate * 30;
 % Check that this is still a valid range. 
 if handles.plotRange(1) < 1
-    handles.plotRange = [1,(handles.frameRate*50)];
+    handles.plotRange = [1,(handles.framerate*50)];
 end
 handles = updatePlot(handles);
 handles = plotEvents(handles);
@@ -192,10 +247,10 @@ function ForwardButton_Callback(hObject, eventdata, handles)
 % hObject    handle to ForwardButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles.plotRange = handles.plotRange + handles.frameRate * 30;
+handles.plotRange = handles.plotRange + handles.framerate * 30;
 % Check that this is still a valid range. 
 if handles.plotRange(2) > length(handles.data)
-    handles.plotRange = [length(handles.data) - handles.frameRate*30 + 1,...
+    handles.plotRange = [length(handles.data) - handles.framerate*30 + 1,...
         length(handles.data)];
 end
 handles = updatePlot(handles);
@@ -207,11 +262,12 @@ function InvertCheckbox_Callback(hObject, eventdata, handles)
 handles.data = -handles.data;
 handles.data_filt = -handles.data_filt;
 
+
 currPosition = get(handles.signalROI,'Position');
 th = currPosition(1,2);
 th = -th;
 newPosition = [0,th;
-                length(handles.data)*handles.frameRate,th];
+                length(handles.data)*handles.framerate,th];
 set(handles.signalROI,'Position',newPosition);
 handles = updatePlot(handles);
 handles = plotEvents(handles);
@@ -225,7 +281,7 @@ else
     defaultThresh = nanmean(handles.data);
 end
 position = [0,defaultThresh;...
-    length(handles.data)*handles.frameRate,defaultThresh];
+    length(handles.data)*handles.framerate,defaultThresh];
 set(handles.signalROI,'Position',position);
 handles = plotEvents(handles);
 guidata(hObject,handles);
@@ -277,7 +333,7 @@ newFR = str2double(FR_options{get(hObject,'Value')});
 handles.timeVect = (1:length(handles.data)) / newFR;
 % Reset the plot range from 0 to 10 seconds
 handles.plotRange = [1,newFR * 50];
-handles.frameRate = newFR;
+handles.framerate = newFR;
 handles = updatePlot(handles);
 handles = plotEvents(handles);
 guidata(hObject,handles);
@@ -340,7 +396,7 @@ end
 % Threshold from current ROI line position
 thresh = handles.signalROI.Position(1,2);
 % Sampling rate from the data header.
-SR = handles.frameRate;
+SR = handles.framerate;
 % Event duration parameters from the values of the edit boxes
 % -- Converting from milliseconds to sample count
 mindur = round(str2double(handles.MinDurEdit.String) * SR / 1000);
