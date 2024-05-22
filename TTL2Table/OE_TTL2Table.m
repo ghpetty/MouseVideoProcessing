@@ -34,3 +34,5 @@ BehaviorDataTable= [dataKey,cell2table([startIndCell,endIndCell],'VariableNames'
 BehaviorDataTable.Properties.RowNames = BehaviorDataTable.VariableName;
 BehaviorDataTable.VariableName = [];
 
+save(fullfile(TTL_path,"BehaviorDataTable"),"BehaviorDataTable")
+
