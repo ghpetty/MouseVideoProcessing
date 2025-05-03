@@ -291,7 +291,7 @@ params = struct('VR',handles.VR,...
                 'Min_Radius',get(handles.MinCutoffSlider,'Value'));
 % allgraphics = findall(groot,'Type','UIControl');
 % set(allgraphics,'Enable','off');
-% processPupil_wholevid(params,floor(60 * handles.VR.FrameRate),false,true);
+% processPupil_wholevid(params,floor(60 * handles.VR.FrameRate),false,true
 nFrames=floor(60 * handles.VR.FrameRate);
 dosave=false;
 doplot=true;

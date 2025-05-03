@@ -36,10 +36,11 @@ if useProgressBar
         'CreateCancelBtn','setappdata(gcbf,''canceling'',1)');
     setappdata(progBar,'canceling',0);
 end
-
-for i = 1:nFrames
+i = 1;
+while i < nFrames && hasFrame(params.VR)
     [radii(i),centroids(:,i),IRsig(i),semimajorAxis(i)] = ...
         processPupilFrame_analysis(params);
+
     if useProgressBar
         if getappdata(progBar,'canceling')
             break
@@ -54,11 +55,18 @@ for i = 1:nFrames
         end
 
     end
+    i = i+1;
+
 end
+
 if getappdata(progBar,'canceling')
     delete(progBar);
     return
 
+end
+% If we ended early because we ran out of frames, throw a warning
+if i < nFrames
+    warndlg('Ran out of video frames while processing 1 minute sample.')
 end
 
 
@@ -80,8 +88,10 @@ dataStruct.semimajorAxis = semimajorAxis;
 dataOut = processPupil_postprocessing(dataStruct,postprocessParams);
 
 delete(progBar);
-% Generate a smmary plot, if requested:
+% Generate a summary plot, if requested:
 if doplot
+    % Rewind the video, since we might be at the end
+    params.VR.currentTime = 0;
     figure;
     sampleFrame = imcrop(readFrame(params.VR),params.PupilROI);
     frameVect = (1:nFrames) + startFrame - 1;
