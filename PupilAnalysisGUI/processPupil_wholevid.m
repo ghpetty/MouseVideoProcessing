@@ -66,7 +66,7 @@ if getappdata(progBar,'canceling')
 end
 % If we ended early because we ran out of frames, throw a warning
 if i < nFrames
-    warndlg('Ran out of video frames while processing 1 minute sample.')
+    warndlg('Ran out of frames while processing video - Video terminated earlier than expected.')
 end
 
 
@@ -90,11 +90,15 @@ dataOut = processPupil_postprocessing(dataStruct,postprocessParams);
 delete(progBar);
 % Generate a summary plot, if requested:
 if doplot
-    % Rewind the video, since we might be at the end
-    params.VR.currentTime = 0;
-    figure;
-    sampleFrame = imcrop(readFrame(params.VR),params.PupilROI);
+    try 
+        sampleFrame = readFrame(params.VR);
+    catch % Try rewinding before proceding, in case the error is that we are out of frames.
+        params.VR.currentTime = 0;
+        sampleFrame = readFrame(params.VR);
+    end
+    sampleFrame = imcrop(sampleFrame,params.PupilROI);
     frameVect = (1:nFrames) + startFrame - 1;
+    figure
     processPupil_postprocessPlot(sampleFrame,frameVect,dataOut)
 end
 
